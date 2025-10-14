@@ -22,18 +22,18 @@
 
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx">
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
       // GitHub Pages SPA redirect handler
-      // (function() {
-      //   const redirect = sessionStorage.getItem('gh_spa_redirect');
-      //   if (redirect) {
-      //     sessionStorage.removeItem('gh_spa_redirect');
-      //     const { pathname, search, hash } = JSON.parse(redirect);
-      //     const url = pathname + search + hash;
-      //     history.replaceState(null, null, url);
-      //   }
-      // })();
-      // type="module" src="/src/main.tsx">
+      (function() {
+        const redirect = sessionStorage.getItem('gh_spa_redirect');
+        if (redirect) {
+          sessionStorage.removeItem('gh_spa_redirect');
+          const { pathname, search, hash } = JSON.parse(redirect);
+          const url = pathname + search + hash;
+          history.replaceState(null, null, url);
+        }
+      })();
     </script>
   </body>
 </html>
