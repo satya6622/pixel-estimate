@@ -5,6 +5,9 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  // Base path for GitHub Pages: https://<user>.github.io/pixel-estimate/
+  // Only applied for production builds so local dev stays at '/'
+  base: mode === "production" ? "/pixel-estimate/" : "/",
   server: {
     host: "::",
     port: 8080,
