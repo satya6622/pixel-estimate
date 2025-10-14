@@ -10,15 +10,30 @@
     <meta property="og:title" content="Invoice & Estimation Manager" />
     <meta property="og:description" content="Create professional estimations and invoices with automatic calculations and PDF generation" />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <!-- <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" /> -->
+
+    <!-- Force a blank favicon -->
+    <link rel="icon" href="data:," />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@lovable_dev" />
-    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <!-- <meta name="twitter:site" content="@lovable_dev" /> -->
+    <!-- <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" /> -->
   </head>
 
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // GitHub Pages SPA redirect handler
+      (function() {
+        const redirect = sessionStorage.getItem('gh_spa_redirect');
+        if (redirect) {
+          sessionStorage.removeItem('gh_spa_redirect');
+          const { pathname, search, hash } = JSON.parse(redirect);
+          const url = pathname + search + hash;
+          history.replaceState(null, null, url);
+        }
+      })();
+    </script>
   </body>
 </html>

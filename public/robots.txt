@@ -10,5 +10,6 @@ Allow: /
 User-agent: facebookexternalhit
 Allow: /
 
+# GitHub Pages deployment; allow crawling
 User-agent: *
 Allow: /
