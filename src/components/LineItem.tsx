@@ -5,6 +5,7 @@ import { Trash2 } from "lucide-react";
 export interface LineItemData {
   id: string;
   description: string;
+  features: string;
   quantity: number;
   price: number;
 }
@@ -20,50 +21,58 @@ export const LineItem = ({ item, onChange, onRemove, canRemove }: LineItemProps)
   const subtotal = item.quantity * item.price;
 
   return (
-    <div className="grid grid-cols-12 gap-4 items-center py-2">
-      <div className="col-span-12 md:col-span-5">
-        <Input
-          placeholder="Item description"
-          value={item.description}
-          onChange={(e) => onChange(item.id, "description", e.target.value)}
-          className="w-full"
-        />
-      </div>
-      <div className="col-span-4 md:col-span-2">
-        <Input
-          type="number"
-          min="0"
-          step="1"
-          placeholder="Qty"
-          value={item.quantity || ""}
-          onChange={(e) => onChange(item.id, "quantity", parseFloat(e.target.value) || 0)}
-          className="w-full"
-        />
-      </div>
-      <div className="col-span-4 md:col-span-2">
-        <Input
-          type="number"
-          min="0"
-          step="0.01"
-          placeholder="Price"
-          value={item.price || ""}
-          onChange={(e) => onChange(item.id, "price", parseFloat(e.target.value) || 0)}
-          className="w-full"
-        />
-      </div>
-      <div className="col-span-3 md:col-span-2 text-right font-semibold">
-        ${subtotal.toFixed(2)}
-      </div>
-      <div className="col-span-1 md:col-span-1">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => onRemove(item.id)}
-          disabled={!canRemove}
-          className="text-destructive hover:text-destructive hover:bg-destructive/10"
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
+    <div className="space-y-2">
+      <div className="grid grid-cols-12 gap-4 items-start py-2">
+        <div className="col-span-12 md:col-span-5 space-y-2">
+          <Input
+            placeholder="Item description"
+            value={item.description}
+            onChange={(e) => onChange(item.id, "description", e.target.value)}
+            className="w-full"
+          />
+          <Input
+            placeholder="Features (e.g., 300 GSM, Round edge, Glossy)"
+            value={item.features}
+            onChange={(e) => onChange(item.id, "features", e.target.value)}
+            className="w-full text-sm"
+          />
+        </div>
+        <div className="col-span-4 md:col-span-2">
+          <Input
+            type="number"
+            min="0"
+            step="1"
+            placeholder="Qty"
+            value={item.quantity || ""}
+            onChange={(e) => onChange(item.id, "quantity", parseFloat(e.target.value) || 0)}
+            className="w-full"
+          />
+        </div>
+        <div className="col-span-4 md:col-span-2">
+          <Input
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="Rate"
+            value={item.price || ""}
+            onChange={(e) => onChange(item.id, "price", parseFloat(e.target.value) || 0)}
+            className="w-full"
+          />
+        </div>
+        <div className="col-span-3 md:col-span-2 text-right font-semibold pt-2">
+          ₹{subtotal.toFixed(2)}
+        </div>
+        <div className="col-span-1 md:col-span-1 pt-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onRemove(item.id)}
+            disabled={!canRemove}
+            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );
