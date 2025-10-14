@@ -7,12 +7,12 @@ import { componentTagger } from "lovable-tagger";
 export default defineConfig(({ mode }) => ({
   // Base path for GitHub Pages: https://<user>.github.io/pixel-estimate/
   // Only applied for production builds so local dev stays at '/'
-  base: mode === "production" ? "/pixel-estimate/" : "/",
+  base: "/pixel-estimate/",
   server: {
     host: "::",
     port: 8080,
   },
-  plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
+  plugins: [react()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
