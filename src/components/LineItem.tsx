@@ -8,6 +8,7 @@ export interface LineItemData {
   features: string;
   quantity: number;
   price: number;
+  deliveryFee: number;
 }
 
 interface LineItemProps {
@@ -73,6 +74,27 @@ export const LineItem = ({ item, onChange, onRemove, canRemove }: LineItemProps)
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
+      </div>
+      
+      {/* Delivery Free Input - Separate Row */}
+      <div className="grid grid-cols-12 gap-4 items-center py-2 bg-muted/30 rounded-md px-4">
+        <div className="col-span-12 md:col-span-3">
+          <label className="text-sm font-medium text-muted-foreground">
+            Delivery Fee Amount:
+          </label>
+        </div>
+        <div className="col-span-8 md:col-span-3">
+          <Input
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="0.00"
+            value={item.deliveryFee || ""}
+            onChange={(e) => onChange(item.id, "deliveryFee", parseFloat(e.target.value) || 0)}
+            className="w-full"
+          />
+        </div>
+        <div className="col-span-4 md:col-span-6"></div>
       </div>
     </div>
   );

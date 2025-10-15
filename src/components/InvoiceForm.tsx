@@ -9,6 +9,7 @@ import { Plus, Download, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { saveToGoogleSheets, InvoiceData } from "@/lib/googleSheets";
 
 interface InvoiceFormProps {
   type: "estimation" | "invoice";
@@ -25,20 +26,20 @@ export const InvoiceForm = ({ type }: InvoiceFormProps) => {
   const [advancePaid, setAdvancePaid] = useState("");
   const [modeOfPayment, setModeOfPayment] = useState("");
   const [items, setItems] = useState<LineItemData[]>([
-    { id: "1", description: "", features: "", quantity: 1, price: 0 },
+    { id: "1", description: "", features: "", quantity: 1, price: 0, deliveryFee: 0 },
   ]);
 
   // Static company details (TO address)
   const companyName = "Blessing Designers";
-  const companyAddress = "Andhra pradesh, guntur";
-  const companyCity = "Guntur";
+  const companyAddress = "Andhra pradesh, Guntur";
+  // const companyCity = "Guntur";
   const companyPincode = "522001";
   const companyPhone = "9381451900";
   const companyEmail = "blessingdesigners01@gmail.com";
 
   const addItem = () => {
     const newId = (Math.max(...items.map((i) => parseInt(i.id)), 0) + 1).toString();
-    setItems([...items, { id: newId, description: "", features: "", quantity: 1, price: 0 }]);
+    setItems([...items, { id: newId, description: "", features: "", quantity: 1, price: 0, deliveryFee: 0 }]);
   };
 
   const removeItem = (id: string) => {
@@ -64,12 +65,13 @@ export const InvoiceForm = ({ type }: InvoiceFormProps) => {
     setDate(new Date().toISOString().split('T')[0]);
     setAdvancePaid("");
     setModeOfPayment("");
-    setItems([{ id: "1", description: "", features: "", quantity: 1, price: 0 }]);
+    setItems([{ id: "1", description: "", features: "", quantity: 1, price: 0, deliveryFee: 0 }]);
     toast.success("Form reset successfully");
   };
 
   const subtotal = items.reduce((sum, item) => sum + item.quantity * item.price, 0);
-  const total = subtotal;
+  const deliveryFees = items.reduce((sum, item) => sum + item.deliveryFee, 0);
+  const total = subtotal + deliveryFees;
   const numericAdvancePaid = parseFloat(advancePaid) || 0;
   const balanceDue = type === "invoice" ? total - numericAdvancePaid : total;
 
@@ -83,6 +85,46 @@ export const InvoiceForm = ({ type }: InvoiceFormProps) => {
       .format(value)
       .replace(/[\u00A0\u202F]/g, " ");
   const formatINRWithCode = (value: number) => `INR ${formatINRNumber(value)}`;
+
+  // Prepare data for Google Sheets
+  const prepareDataForSheets = (): InvoiceData => {
+    return {
+      clientName,
+      clientEmail,
+      clientAddress,
+      clientPhone,
+      clientPincode,
+      items: items.map(item => ({
+        description: item.description,
+        features: item.features,
+        quantity: item.quantity,
+        price: item.price,
+        amount: item.quantity * item.price,
+        deliveryFee: item.deliveryFee,
+      })),
+      totalAmount: total,
+      advancePaid: numericAdvancePaid,
+      type: type === "estimation" ? "estimate" : "invoice",
+      modeOfPayment,
+    };
+  };
+
+  // Save to Google Sheets
+  const saveToSheets = async () => {
+    try {
+      const data = prepareDataForSheets();
+      const success = await saveToGoogleSheets(data);
+      
+      if (success) {
+        toast.success("Data saved to Google Sheets successfully!");
+      } else {
+        toast.error("Failed to save data to Google Sheets");
+      }
+    } catch (error) {
+      console.error('Error saving to sheets:', error);
+      toast.error("Error saving to Google Sheets");
+    }
+  };
 
   const validateForm = () => {
     if (!clientName.trim()) {
@@ -100,7 +142,7 @@ export const InvoiceForm = ({ type }: InvoiceFormProps) => {
     return true;
   };
 
-  const generatePDF = () => {
+  const generatePDF = async () => {
     if (!validateForm()) return;
 
     const doc = new jsPDF();
@@ -139,10 +181,10 @@ export const InvoiceForm = ({ type }: InvoiceFormProps) => {
     doc.setFont("helvetica", 'normal');
     doc.setTextColor(gray.r, gray.g, gray.b);
     doc.text(companyAddress, 14, 35);
-    doc.text(companyCity, 14, 41);
-    doc.text(companyPincode, 14, 47);
-    doc.text(companyPhone, 14, 53);
-    doc.text(companyEmail, 14, 59);
+    // doc.text(companyCity, 14, 41);
+    doc.text(companyPincode, 14, 41);
+    doc.text(companyPhone, 14, 47);
+    doc.text(companyEmail, 14, 53);
     
     // Document info (Right side)
     doc.setFontSize(10);
@@ -232,14 +274,44 @@ export const InvoiceForm = ({ type }: InvoiceFormProps) => {
       },
     });
     
-    const finalY = (doc as any).lastAutoTable.finalY + 10;
+    let finalY = (doc as any).lastAutoTable.finalY + 10;
+    
+    // Delivery Fee section
+    const itemsWithDeliveryFee = items.filter(item => item.deliveryFee > 0);
+    if (itemsWithDeliveryFee.length > 0) {
+      doc.setFontSize(10);
+      doc.setFont("helvetica", 'bold');
+      doc.setTextColor(0, 0, 0);
+      // doc.text('Delivery Fee Items:', 14, finalY);
+      
+      let deliveryY = finalY + 7;
+      // itemsWithDeliveryFee.forEach((item, index) => {
+      //   doc.setFont("helvetica", 'normal');
+      //   doc.text(`${item.description}: ${formatINRWithCode(item.deliveryFee)}`, 20, deliveryY);
+      //   deliveryY += 5;
+      // });
+      
+      finalY = deliveryY + 5;
+    }
     
     // Total section (simple, no color)
     doc.setTextColor(0, 0, 0);
-    doc.setFont("helvetica", 'bold');
-    doc.text('TOTAL', 160, finalY, { align: 'right' });
     doc.setFont("helvetica", 'normal');
-    doc.text(`${formatINRWithCode(total)}`, 196, finalY, { align: 'right' });
+    doc.text('Subtotal:', 160, finalY, { align: 'right' });
+    doc.text(`${formatINRWithCode(subtotal)}`, 196, finalY, { align: 'right' });
+    
+    if (deliveryFees > 0) {
+      doc.setFont("helvetica", 'normal');
+      doc.text('Delivery Fee:', 160, finalY + 7, { align: 'right' });
+      doc.text(`${formatINRWithCode(deliveryFees)}`, 196, finalY + 7, { align: 'right' });
+      finalY += 7;
+    }
+    
+    doc.setFont("helvetica", 'bold');
+    doc.text('TOTAL', 160, finalY + 7, { align: 'right' });
+    doc.setFont("helvetica", 'normal');
+    doc.text(`${formatINRWithCode(total)}`, 196, finalY + 7, { align: 'right' });
+    finalY += 7;
     
     // Invoice specific fields
     if (type === "invoice" && numericAdvancePaid > 0) {
@@ -267,7 +339,11 @@ export const InvoiceForm = ({ type }: InvoiceFormProps) => {
     }
 
     doc.save(`${type}_${clientName.replace(/\s+/g, "_")}_${new Date().getTime()}.pdf`);
-    toast.success("PDF generated successfully!");
+    
+    // Save to Google Sheets
+    await saveToSheets();
+    
+    toast.success("PDF generated and data saved successfully!");
   };
 
   return (
@@ -397,6 +473,16 @@ export const InvoiceForm = ({ type }: InvoiceFormProps) => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="md:col-span-2"></div>
             <div className="space-y-2">
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Subtotal:</span>
+                <span>₹{subtotal.toFixed(2)}</span>
+              </div>
+              {deliveryFees > 0 && (
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Delivery Fee:</span>
+                  <span>₹{deliveryFees.toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-lg font-bold text-success">
                 <span>Total:</span>
                 <span>₹{total.toFixed(2)}</span>
@@ -439,7 +525,11 @@ export const InvoiceForm = ({ type }: InvoiceFormProps) => {
         <div className="flex flex-col sm:flex-row gap-3 pt-4">
           <Button onClick={generatePDF} className="flex-1 gap-2" size="lg">
             <Download className="h-5 w-5" />
-            Download PDF
+            Download PDF & Save
+          </Button>
+          <Button onClick={saveToSheets} variant="outline" className="gap-2" size="lg">
+            <Download className="h-4 w-4" />
+            Save to Sheets
           </Button>
           <Button onClick={resetForm} variant="outline" className="gap-2" size="lg">
             <RotateCcw className="h-4 w-4" />
