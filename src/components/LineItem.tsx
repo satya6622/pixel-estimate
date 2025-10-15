@@ -76,7 +76,7 @@ export const LineItem = ({ item, onChange, onRemove, canRemove }: LineItemProps)
         </div>
       </div>
       
-      {/* Delivery Free Input - Separate Row */}
+      {/* Delivery Fee Input - Separate Row */}
       <div className="grid grid-cols-12 gap-4 items-center py-2 bg-muted/30 rounded-md px-4">
         <div className="col-span-12 md:col-span-3">
           <label className="text-sm font-medium text-muted-foreground">
