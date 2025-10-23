@@ -30,12 +30,12 @@ export const InvoiceForm = ({ type }: InvoiceFormProps) => {
   ]);
 
   // Static company details (TO address)
-  const companyName = "Blessing Designers";
+  const companyName = "Blessing Connect Studio";
   const companyAddress = "Andhra pradesh, Guntur";
   // const companyCity = "Guntur";
   const companyPincode = "522001";
   const companyPhone = "9381451900";
-  const companyEmail = "blessingdesigners01@gmail.com";
+  const companyEmail = "blessingconnectstudio@gmail.com";
 
   const addItem = () => {
     const newId = (Math.max(...items.map((i) => parseInt(i.id)), 0) + 1).toString();
@@ -106,6 +106,7 @@ export const InvoiceForm = ({ type }: InvoiceFormProps) => {
       advancePaid: numericAdvancePaid,
       type: type === "estimation" ? "estimate" : "invoice",
       modeOfPayment,
+      date,
     };
   };
 
@@ -268,9 +269,9 @@ export const InvoiceForm = ({ type }: InvoiceFormProps) => {
       },
       columnStyles: {
         0: { cellWidth: 100 },
-        1: { halign: 'right', cellWidth: 30 },
+        1: { halign: 'center', cellWidth: 30 },
         2: { halign: 'center', cellWidth: 20 },
-        3: { halign: 'right', cellWidth: 36 },
+        3: { halign: 'center', cellWidth: 36 },
       },
     });
     
