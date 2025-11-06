@@ -25,8 +25,9 @@ export const InvoiceForm = ({ type }: InvoiceFormProps) => {
   // Keep as string so the input can be blank
   const [advancePaid, setAdvancePaid] = useState("");
   const [modeOfPayment, setModeOfPayment] = useState("");
+  const [discount, setDiscount] = useState("");
   const [items, setItems] = useState<LineItemData[]>([
-    { id: "1", description: "", features: "", quantity: 1, price: 0, deliveryFee: 0 },
+    { id: "1", description: "", features: "", quantity: 1, price: 0, deliveryFee: 0, cornerCutting: 0 },
   ]);
 
   // Static company details (TO address)
@@ -39,7 +40,7 @@ export const InvoiceForm = ({ type }: InvoiceFormProps) => {
 
   const addItem = () => {
     const newId = (Math.max(...items.map((i) => parseInt(i.id)), 0) + 1).toString();
-    setItems([...items, { id: newId, description: "", features: "", quantity: 1, price: 0, deliveryFee: 0 }]);
+    setItems([...items, { id: newId, description: "", features: "", quantity: 1, price: 0, deliveryFee: 0, cornerCutting: 0 }]);
   };
 
   const removeItem = (id: string) => {
@@ -65,13 +66,20 @@ export const InvoiceForm = ({ type }: InvoiceFormProps) => {
     setDate(new Date().toISOString().split('T')[0]);
     setAdvancePaid("");
     setModeOfPayment("");
-    setItems([{ id: "1", description: "", features: "", quantity: 1, price: 0, deliveryFee: 0 }]);
+    setDiscount("");
+    setItems([{ id: "1", description: "", features: "", quantity: 1, price: 0, deliveryFee: 0, cornerCutting: 0 }]);
     toast.success("Form reset successfully");
   };
 
   const subtotal = items.reduce((sum, item) => sum + item.quantity * item.price, 0);
   const deliveryFees = items.reduce((sum, item) => sum + item.deliveryFee, 0);
-  const total = subtotal + deliveryFees;
+  const totalCornerCutting = items.reduce((sum, item) => sum + item.cornerCutting, 0);
+  const numericDiscount = parseFloat(discount) || 0;
+  const totalBeforeRoundOff = subtotal + deliveryFees + totalCornerCutting - numericDiscount;
+  // Round up to nearest whole number (no paise)
+  const roundedTotal = Math.ceil(totalBeforeRoundOff);
+  const roundOff = roundedTotal - totalBeforeRoundOff;
+  const total = roundedTotal; // Final total without decimals
   const numericAdvancePaid = parseFloat(advancePaid) || 0;
   const balanceDue = type === "invoice" ? total - numericAdvancePaid : total;
 
@@ -85,6 +93,14 @@ export const InvoiceForm = ({ type }: InvoiceFormProps) => {
       .format(value)
       .replace(/[\u00A0\u202F]/g, " ");
   const formatINRWithCode = (value: number) => `INR ${formatINRNumber(value)}`;
+  const formatINRNumberNoDecimals = (value: number) =>
+    new Intl.NumberFormat("en-IN", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    })
+      .format(value)
+      .replace(/[\u00A0\u202F]/g, " ");
+  const formatINRWithCodeNoDecimals = (value: number) => `INR ${formatINRNumberNoDecimals(value)}`;
 
   // Prepare data for Google Sheets
   const prepareDataForSheets = (): InvoiceData => {
@@ -101,12 +117,16 @@ export const InvoiceForm = ({ type }: InvoiceFormProps) => {
         price: item.price,
         amount: item.quantity * item.price,
         deliveryFee: item.deliveryFee,
+        cornerCutting: item.cornerCutting,
       })),
       totalAmount: total,
       advancePaid: numericAdvancePaid,
       type: type === "estimation" ? "estimate" : "invoice",
       modeOfPayment,
       date,
+      cornerCutting: totalCornerCutting,
+      discount: numericDiscount,
+      roundOff: roundOff,
     };
   };
 
@@ -204,7 +224,7 @@ export const InvoiceForm = ({ type }: InvoiceFormProps) => {
     doc.setFont("helvetica", 'bold');
     doc.text('TOTAL', 196, 56, { align: 'right' });
     doc.setFont("helvetica", 'normal');
-    doc.text(`${formatINRWithCode(total)}`, 196, 62, { align: 'right' });
+    doc.text(`${formatINRWithCodeNoDecimals(total)}`, 196, 62, { align: 'right' });
     
     // TO Section
     doc.setFontSize(10);
@@ -308,10 +328,31 @@ export const InvoiceForm = ({ type }: InvoiceFormProps) => {
       finalY += 7;
     }
     
+    if (totalCornerCutting > 0) {
+      doc.setFont("helvetica", 'normal');
+      doc.text('Total Corner Cutting:', 160, finalY + 7, { align: 'right' });
+      doc.text(`${formatINRWithCode(totalCornerCutting)}`, 196, finalY + 7, { align: 'right' });
+      finalY += 7;
+    }
+    
+    if (numericDiscount > 0) {
+      doc.setFont("helvetica", 'normal');
+      doc.text('Discount:', 160, finalY + 7, { align: 'right' });
+      doc.text(`-${formatINRWithCode(numericDiscount)}`, 196, finalY + 7, { align: 'right' });
+      finalY += 7;
+    }
+    
+    if (roundOff > 0) {
+      doc.setFont("helvetica", 'normal');
+      doc.text('Round Off:', 160, finalY + 7, { align: 'right' });
+      doc.text(`${formatINRWithCode(roundOff)}`, 196, finalY + 7, { align: 'right' });
+      finalY += 7;
+    }
+    
     doc.setFont("helvetica", 'bold');
     doc.text('TOTAL', 160, finalY + 7, { align: 'right' });
     doc.setFont("helvetica", 'normal');
-    doc.text(`${formatINRWithCode(total)}`, 196, finalY + 7, { align: 'right' });
+    doc.text(`${formatINRWithCodeNoDecimals(total)}`, 196, finalY + 7, { align: 'right' });
     finalY += 7;
     
     // Invoice specific fields
@@ -323,7 +364,7 @@ export const InvoiceForm = ({ type }: InvoiceFormProps) => {
       doc.setFont("helvetica", 'bold');
       doc.text('Balance Due:', 160, finalY + 14, { align: 'right' });
       doc.setFont("helvetica", 'normal');
-      doc.text(`${formatINRWithCode(balanceDue)}`, 196, finalY + 14, { align: 'right' });
+      doc.text(`${formatINRWithCodeNoDecimals(balanceDue)}`, 196, finalY + 14, { align: 'right' });
     }
 
     // Footer
@@ -469,6 +510,30 @@ export const InvoiceForm = ({ type }: InvoiceFormProps) => {
 
         <Separator />
 
+        {/* Discount */}
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="discount">Discount Amount</Label>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">₹</span>
+                <Input
+                  id="discount"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={discount}
+                  onChange={(e) => setDiscount(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <Separator />
+
         {/* Totals */}
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -484,9 +549,27 @@ export const InvoiceForm = ({ type }: InvoiceFormProps) => {
                   <span>₹{deliveryFees.toFixed(2)}</span>
                 </div>
               )}
+              {totalCornerCutting > 0 && (
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Total Corner Cutting:</span>
+                  <span>₹{totalCornerCutting.toFixed(2)}</span>
+                </div>
+              )}
+              {numericDiscount > 0 && (
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Discount:</span>
+                  <span className="text-red-600">-₹{numericDiscount.toFixed(2)}</span>
+                </div>
+              )}
+              {roundOff > 0 && (
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Round Off:</span>
+                  <span>₹{roundOff.toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-lg font-bold text-success">
                 <span>Total:</span>
-                <span>₹{total.toFixed(2)}</span>
+                <span>₹{total.toFixed(0)}</span>
               </div>
               
               {type === "invoice" && (
@@ -513,7 +596,7 @@ export const InvoiceForm = ({ type }: InvoiceFormProps) => {
                     <Separator />
                     <div className="flex justify-between text-lg font-bold text-primary">
                       <span>Balance Due:</span>
-                      <span>₹{balanceDue.toFixed(2)}</span>
+                      <span>₹{balanceDue.toFixed(0)}</span>
                     </div>
                   </div>
                 </>

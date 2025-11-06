@@ -15,12 +15,16 @@ export interface InvoiceData {
     price: number;
     amount: number;
     deliveryFee: number;
+    cornerCutting: number;
   }>;
   totalAmount: number;
   advancePaid: number;
   type: 'estimate' | 'invoice';
   modeOfPayment: string;
   date: string;
+  cornerCutting: number;
+  discount: number;
+  roundOff: number;
 }
 
 // Generate unique ID: name_timestamp
@@ -32,6 +36,17 @@ const generateId = (clientName: string): string => {
   const cleanName = clientName.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
   return `${cleanName}_${timestamp}`;
 };
+
+const date = new Date();
+
+// Convert to IST by adding 5 hours 30 minutes offset
+const istDate = new Date(date.getTime() + (5.5 * 60 * 60 * 1000));
+
+// Format to 'YYYY-MM-DD HH:mm:ss'
+const formattedDate = istDate.toISOString().slice(0, 19).replace('T', ' ');
+
+console.log(formattedDate);
+
 
 // Format data for Google Sheets
 const formatDataForSheets = (data: InvoiceData) => {
@@ -55,6 +70,7 @@ const formatDataForSheets = (data: InvoiceData) => {
       data.advancePaid,
       data.type,
       item.deliveryFee,
+      item.cornerCutting, // Corner cutting per item
       data.modeOfPayment,
     ];
     rows.push(row);
@@ -76,6 +92,11 @@ const formatDataForSheets = (data: InvoiceData) => {
     data.items.reduce((sum, item) => sum + item.quantity, 0),
     data.items.reduce((sum, item) => sum + item.amount, 0),
     data.items.reduce((sum, item) => sum + item.deliveryFee, 0),
+    data.cornerCutting,
+    data.discount,
+    data.roundOff,
+    // new Date().toISOString(),
+    formattedDate,
   ]);
 
   return [rows, summaryRow];
